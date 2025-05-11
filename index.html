@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rắn lửa Fogo ăn mồi</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #222;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            border: 3px solid #FF6600;
+            border-radius: 5px;
+            background-color: #FFF7E6;
+            box-shadow: 0 0 20px 5px rgba(255, 102, 0, 0.3);
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        #score-container {
+            color: #FFF;
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            width: 600px;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+        }
+        
+        #game-over h2 {
+            color: #FF6600;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #FFC107;
+        }
+        
+        #game-over p {
+            color: #FFF;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+        
+        #restart-btn {
+            background-color: #FF6600;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        #restart-btn:hover {
+            background-color: #FF8533;
+            transform: scale(1.05);
+        }
+        
+        #level-indicator {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #FF6600;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+        }
+        
+        /* Mobile controls */
+        #mobile-controls {
+            display: none;
+            width: 300px;
+            height: 200px;
+            position: relative;
+            margin-top: 20px;
+        }
+        
+        .control-btn {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 102, 0, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            user-select: none;
+        }
+        
+        #up-btn {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #left-btn {
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+        
+        #right-btn {
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+        }
+        
+        #down-btn {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        @media (max-width: 768px) {
+            #game-container {
+                width: 90vw;
+                height: 60vw;
+                max-width: 600px;
+                max-height: 400px;
+            }
+            
+            #score-container {
+                width: 90vw;
+                max-width: 600px;
+            }
+            
+            #mobile-controls {
+                display: block;
+            }
+        }
+        
+        /* Start screen */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        #start-screen h2 {
+            color: #FF6600;
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #FFC107;
+            text-align: center;
+        }
+        
+        #start-screen p {
+            color: #FFF;
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        #start-btn {
+            background-color: #FF6600;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        #start-btn:hover {
+            background-color: #FF8533;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="score-container">
+        <div>Điểm: <span id="score">0</span></div>
+        <div>Cao nhất: <span id="high-score">0</span></div>
+    </div>
+    
+    <div id="game-container">
+        <canvas id="game-canvas" width="600" height="400"></canvas>
+        <div id="level-indicator">Level 1</div>
+        
+        <div id="start-screen">
+            <h2>Rắn lửa Fogo ăn mồi</h2>
+            <p>Dùng phím mũi tên để di chuyển. Ăn lửa để tăng điểm và độ dài con rắn.<br>Cẩn thận không đâm vào tường hoặc thân rắn!</p>
+            <button id="start-btn">Bắt đầu chơi</button>
+        </div>
+        
+        <div id="game-over">
+            <h2>Game Over</h2>
+            <p>Điểm của bạn: <span id="final-score">0</span></p>
+            <button id="restart-btn">Chơi lại</button>
+        </div>
+    </div>
+    
+    <div id="mobile-controls">
+        <div class="control-btn" id="up-btn">↑</div>
+        <div class="control-btn" id="left-btn">←</div>
+        <div class="control-btn" id="right-btn">→</div>
+        <div class="control-btn" id="down-btn">↓</div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get canvas and context
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Game variables
+            const gridSize = 20;
+            const initialSnakeLength = 3;
+            let snake = [];
+            let food = {};
+            let direction = '';
+            let nextDirection = '';
+            let score = 0;
+            let highScore = localStorage.getItem('snakeHighScore') || 0;
+            let gameInterval;
+            let gameSpeed = 150; // Initial speed (ms)
+            let level = 1;
+            let gameRunning = false;
+            
+            // Images
+            const snakeHeadImg = new Image();
+            const snakeBodyImg = new Image();
+            const foodImg = new Image();
+            
+            snakeHeadImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMDAgNTUwIj48c3R5bGU+LnN0MHtmaWxsOiNGRkE1MDA7fS5zdDF7ZmlsbDojRkY2NjAwO30uc3Qye2ZpbGw6I0ZGRkZGRjt9LnN0M3tmaWxsOiM1NTM5MDA7fTwvc3R5bGU+PHBhdGggY2xhc3M9InN0MCIgZD0iTTE1MCwxMDBjMzIuOCwwLDY1LjYsMzIuOCw2NS42LDk4LjRjMCw4Mi0zMi44LDE5Ni44LTY1LjYsMTk2LjhzLTY1LjYtMTE0LjgtNjUuNi0xOTYuOEMxMTguNCwxMzIuOCwxMTcuMiwxMDAsMTUwLDEwMHoiLz48cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjAwLDQwYzE2LjQsMTYuNCw0OS4yLDgxLjksMzIuOCwxMTQuN2MtMTYuNCwzMi44LTY1LjYsNDkuMS05OC40LDQ5LjFTNTAuNCwxODcuNSwzNCwxNTQuN0MxNy42LDEyMS45LDUwLjQsNTYuNCw2Ni44LDQwQzk5LjYsNy4yLDE2Ny4yLDcuMiwyMDAsNDB6Ii8+PHBhdGggY2xhc3M9InN0MSIgZD0iTTY3LDE1NWMtOS44LDI0LjYtMjkuNCwyOS41LTQxLjUsNDEuNWMtMTIuMywxMi4zLTI0LjYsNDkuMi0xMi4zLDYxLjRjMTIuMywxMi4zLDQ5LjIsMCw2MS40LTEyLjNDODcsMjM1LjEsNzYuOCwxMzAuNCw2NywxNTV6Ii8+PHBhdGggY2xhc3M9InN0MSIgZD0iTTIzMywxNTVjOS44LDI0LjYsMjkuNCwyOS41LDQxLjUsNDEuNWMxMi4zLDEyLjMsMjQuNiw0OS4yLDEyLjMsNjEuNGMtMTIuMywxMi4zLTQ5LjIsMC02MS40LTEyLjNDMjEzLDIzNS4xLDIyMy4yLDEzMC40LDIzMywxNTV6Ii8+PHBhdGggY2xhc3M9InN0MSIgZD0iTTQwLDMwMGMxMi4zLDEyLjMsMzYuOSw4LjIsNDkuMi0xMi4zYzEyLjMtMjAuNSwxMi4zLTY5LjcsMC05MGMtMTIuMy0yMC41LTM2LjktMjQuNi00OS4yLTEyLjNjLTEyLjMsMTIuMy0xMi4zLDEwMi40LDAsMTE0LjZ6Ii8+PHBhdGggY2xhc3M9InN0MSIgZD0iTTI2MCwzMDBjLTEyLjMsMTIuMy0zNi45LDguMi00OS4yLTEyLjNjLTEyLjMtMjAuNS0xMi4zLTY5LjcsMC05MGMxMi4zLTIwLjUsMzYuOS0yNC42LDQ5LjItMTIuM0MyNzIuMywxOTcuNywyNzIuMywyODcuNywyNjAsMzAweiIvPjxwYXRoIGNsYXNzPSJzdDMiIGQ9Ik0xNTAsNDEwYy0zMC43LDAtNjEuNC0yMC41LTYxLjQtNjEuNFYyNTVjMC00MC45LDMwLjctNjEuNCw2MS40LTYxLjRzNjEuNCwyMC41LDYxLjQsNjEuNHY5My42QzIxMS40LDM4OS41LDE4MC43LDQxMCwxNTAsNDEweiIvPjxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik0xMDUsMzEwbDIwLTIwbC0yMC0yMHYtMjBoMjBsMjAsMjBsMjAtMjBoMjB2MjBsLTIwLDIwbDIwLDIwdjIwaC0yMGwtMjAtMjBsLTIwLDIwaC0yMFYzMTB6Ii8+PHBhdGggY2xhc3M9InN0MyIgZD0iTTE1MCwzNjBjLTQuMSwwLTguMi0zLjEtOC4yLTkuNVYzMzVjMC02LjQsNC4xLTkuNSw4LjItOS41czguMiwzLjEsOC4yLDkuNXYxNS41QzE1OC4yLDM1Ni45LDE1NC4xLDM2MCwxNTAsMzYweiIvPjwvc3ZnPg==';
+            foodImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMDAgMjAwIj48c3R5bGU+LnN0MHtmaWxsOiNGRkE1MDA7fS5zdDF7ZmlsbDojRkY2NjAwO30uc3Qye2ZpbGw6I0ZGRkZGRjt9PC9zdHlsZT48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTAwLDMwYzE2LjQsMCwzMi44LDE2LjQsMzIuOCw0OS4yYzAsNDEtMTYuNCw5OC40LTMyLjgsOTguNFM2Ny4yLDEyMC4yLDY3LjIsNzkuMkM2Ny4yLDQ2LjQsODMuNiwzMCwxMDAsMzB6Ii8+PHBhdGggY2xhc3M9InN0MSIgZD0iTTEyNSwwYzguMiw4LjIsMjQuNiw0MS4yLDE2LjQsNTcuNmMtOC4yLDE2LjQtMzIuOCwyNC42LTQ5LjIsMjQuNlM1MS4yLDc0LDQzLDU3LjZDMzQuOCw0MS4yLDUxLjIsOC4yLDU5LjQsMEM3NS44LTEwLDEwOC42LTEwLDEyNSwweiIvPjxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik02MCw1OGMtNC45LDEyLjMtMTQuNywxNC44LTIwLjgsMjAuOGMtNi4yLDYuMi0xMi4zLDI0LjYtNi4yLDMwLjdjNi4yLDYuMiwyNC42LDAsMzAuNy02LjJDNjkuOSw5Ny42LDY0LjksNDUuNyw2MCw1OHoiLz48cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTQwLDU4YzQuOSwxMi4zLDE0LjcsMTQuOCwyMC44LDIwLjhjNi4yLDYuMiwxMi4zLDI0LjYsNi4yLDMwLjdjLTYuMiw2LjItMjQuNiwwLTMwLjctNi4yQzEzMC4xLDk3LjYsMTM1LjEsNDUuNywxNDAsNTh6Ii8+PC9zdmc+';
+            snakeBodyImg.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48c3R5bGU+LnN0MHtmaWxsOiNEQzM5MTA7fS5zdDF7ZmlsbDojRkY2NjAwO308L3N0eWxlPjxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik01MCwyMEM3Ny42LDIwLDkwLDUwLDkwLDUwUzc3LjYsODAsNTAsODBTMTAsNTAsMTAsNTBTMjIuNCwyMCw1MCwyMHoiLz48cGF0aCBjbGFzcz0ic3QxIiBkPSJNNjUsMTBjMTAsMCwxNSwxMCwxNSwyMHMtNSwyMC0xNSwyMFMzNSw0MCwzNSwzMFM1NSwxMCw2NSwxMHoiLz48cGF0aCBjbGFzcz0ic3QxIiBkPSJNMzUsOTBjLTEwLDAtMTUtMTAtMTUtMjBzNS0yMCwxNS0yMHMzMCwxMCwzMCwyMFM0NSw5MCwzNSw5MHoiLz48L3N2Zz4=';
+            
+            // Load images then init game
+            let imagesLoaded = 0;
+            const totalImages = 3;
+            
+            function imageLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded === totalImages) {
+                    initializeGame();
+                }
+            }
+            
+            snakeHeadImg.onload = imageLoaded;
+            snakeBodyImg.onload = imageLoaded;
+            foodImg.onload = imageLoaded;
+            
+            // DOM elements
+            const scoreElement = document.getElementById('score');
+            const highScoreElement = document.getElementById('high-score');
+            const finalScoreElement = document.getElementById('final-score');
+            const levelIndicator = document.getElementById('level-indicator');
+            const gameOverScreen = document.getElementById('game-over');
+            const restartButton = document.getElementById('restart-btn');
+            const startScreen = document.getElementById('start-screen');
+            const startButton = document.getElementById('start-btn');
+            
+            // Set high score from local storage
+            highScoreElement.textContent = highScore;
+            
+            // Mobile controls
+            const upBtn = document.getElementById('up-btn');
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            const downBtn = document.getElementById('down-btn');
+            
+            upBtn.addEventListener('touchstart', () => changeDirection('up'));
+            leftBtn.addEventListener('touchstart', () => changeDirection('left'));
+            rightBtn.addEventListener('touchstart', () => changeDirection('right'));
+            downBtn.addEventListener('touchstart', () => changeDirection('down'));
+            
+            // Initialize game
+            function initializeGame() {
+                // Create initial snake
+                snake = [];
+                for (let i = initialSnakeLength - 1; i >= 0; i--) {
+                    snake.push({
+                        x: Math.floor(canvas.width / (2 * gridSize)) * gridSize - i * gridSize,
+                        y: Math.floor(canvas.height / (2 * gridSize)) * gridSize
+                    });
+                }
+                
+                // Create initial food
+                createFood();
+                
+                // Reset game state
+                direction = '';
+                nextDirection = '';
+                score = 0;
+                level = 1;
+                gameSpeed = 150;
+                
+                // Update UI
+                scoreElement.textContent = score;
+                levelIndicator.textContent = 'Level ' + level;
+                
+                // Show start screen
+                startScreen.style.display = 'flex';
+                gameOverScreen.style.display = 'none';
+            }
+            
+            // Start game function
+            function startGame() {
+                gameRunning = true;
+                startScreen.style.display = 'none';
+                nextDirection = 'right'; // Initial direction
+                
+                // Start game loop
+                clearInterval(gameInterval);
+                gameInterval = setInterval(gameLoop, gameSpeed);
+            }
+            
+            // Create food at random position
+            function createFood() {
+                let foodX, foodY;
+                let validPosition = false;
+                
+                while (!validPosition) {
+                    foodX = Math.floor(Math.random() * (canvas.width / gridSize)) * gridSize;
+                    foodY = Math.floor(Math.random() * (canvas.height / gridSize)) * gridSize;
+                    
+                    // Make sure food doesn't spawn on snake
+                    validPosition = true;
+                    for (let segment of snake) {
+                        if (segment.x === foodX && segment.y === foodY) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                
+                food = { x: foodX, y: foodY };
+            }
+            
+            // Change snake direction
+            function changeDirection(newDirection) {
+                if (!gameRunning) return;
+                
+                // Prevent 180-degree turns
+                if (newDirection === 'up' && direction !== 'down') {
+                    nextDirection = 'up';
+                } else if (newDirection === 'down' && direction !== 'up') {
+                    nextDirection = 'down';
+                } else if (newDirection === 'left' && direction !== 'right') {
+                    nextDirection = 'left';
+                } else if (newDirection === 'right' && direction !== 'left') {
+                    nextDirection = 'right';
+                }
+            }
+            
+            // Main game loop
+            function gameLoop() {
+                updateSnake();
+                checkCollision();
+                draw();
+            }
+            
+            // Update snake position
+            function updateSnake() {
+                // Update direction
+                direction = nextDirection;
+                
+                // Calculate new head position
+                const head = { ...snake[0] };
+                
+                switch (direction) {
+                    case 'up':
+                        head.y -= gridSize;
+                        break;
+                    case 'down':
+                        head.y += gridSize;
+                        break;
+                    case 'left':
+                        head.x -= gridSize;
+                        break;
+                    case 'right':
+                        head.x += gridSize;
+                        break;
+                    default:
+                        return; // If no direction, don't move
+                }
+                
+                // Add new head
+                snake.unshift(head);
+                
+                // Check if snake ate food
+                if (head.x === food.x && head.y === food.y) {
+                    // Increase score
+                    score++;
+                    scoreElement.textContent = score;
+                    
+                    // Check for level up
+                    checkLevelUp();
+                    
+                    // Create new food
+                    createFood();
+                } else {
+                    // Remove tail if didn't eat
+                    snake.pop();
+                }
+            }
+            
+            // Check level based on score
+            function checkLevelUp() {
+                const newLevel = Math.floor(score / 5) + 1;
+                
+                if (newLevel > level) {
+                    level = newLevel;
+                    levelIndicator.textContent = 'Level ' + level;
+                    
+                    // Increase speed
+                    gameSpeed = Math.max(50, 150 - (level - 1) * 10);
+                    clearInterval(gameInterval);
+                    gameInterval = setInterval(gameLoop, gameSpeed);
+                }
+            }
+            
+            // Check for collisions
+            function checkCollision() {
+                const head = snake[0];
+                
+                // Check wall collision
+                if (
+                    head.x < 0 ||
+                    head.x >= canvas.width ||
+                    head.y < 0 ||
+                    head.y >= canvas.height
+                ) {
+                    gameOver();
+                    return;
+                }
+                
+                // Check self collision (start from index 1 to exclude head)
+                for (let i = 1; i < snake.length; i++) {
+                    if (head.x === snake[i].x && head.y === snake[i].y) {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+            
+            // Game over function
+            function gameOver() {
+                gameRunning = false;
+                clearInterval(gameInterval);
+                
+                // Update high score if needed
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem('snakeHighScore', highScore);
+                    highScoreElement.textContent = highScore;
+                }
+                
+                finalScoreElement.textContent = score;
+                gameOverScreen.style.display = 'flex';
+            }
+            
+            // Draw everything
+            function draw() {
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw food
+                ctx.drawImage(foodImg, food.x, food.y, gridSize, gridSize);
+                
+                // Draw snake
+                for (let i = 0; i < snake.length; i++) {
+                    if (i === 0) {
+                        // Draw head with rotation based on direction
+                        ctx.save();
+                        ctx.translate(snake[i].x + gridSize/2, snake[i].y + gridSize/2);
+                        
+                        switch(direction) {
+                            case 'up':
+                                ctx.rotate(-Math.PI/2);
+                                break;
+                            case 'down':
+                                ctx.rotate(Math.PI/2);
+                                break;
+                            case 'left':
+                                ctx.rotate(Math.PI);
+                                break;
+                            case 'right':
+                                // Default orientation
+                                break;
+                        }
+                        
+                        ctx.drawImage(snakeHeadImg, -gridSize/2, -gridSize/2, gridSize, gridSize);
+                        ctx.restore();
+                    } else {
+                        // Draw body
+                        ctx.drawImage(snakeBodyImg, snake[i].x, snake[i].y, gridSize, gridSize);
+                    }
+                }
+                
+                // Draw flame particles behind snake for visual effect (based on level)
+                const particleCount = Math.min(10, level * 2);
+                for (let i = 0; i < particleCount; i++) {
+                    if (snake.length > 2) {
+                        const randomIndex = Math.floor(Math.random() * (snake.length - 2)) + 2;
+                        const segment = snake[randomIndex];
+                        
+                        const particleSize = Math.random() * (level * 2) + 4;
+                        const offsetX = Math.random() * gridSize - gridSize/2;
+                        const offsetY = Math.random() * gridSize - gridSize/2;
+                        
+                        ctx.beginPath();
+                        ctx.fillStyle = `rgba(255, ${Math.floor(Math.random() * 150)}, 0, ${Math.random() * 0.7 + 0.3})`;
+                        ctx.arc(segment.x + gridSize/2 + offsetX, segment.y + gridSize/2 + offsetY, particleSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+            
+            // Event listeners
+            document.addEventListener('keydown', function(e) {
+                switch (e.key) {
+                    case 'ArrowUp':
+                        changeDirection('up');
+                        e.preventDefault();
+                        break;
+                    case 'ArrowDown':
+                        changeDirection('down');
+                        e.preventDefault();
+                        break;
+                    case 'ArrowLeft':
+                        changeDirection('left');
+                        e.preventDefault();
+                        break;
+                    case 'ArrowRight':
+                        changeDirection('right');
+                        e.preventDefault();
+                        break;
+                }
+            });
+            
+            restartButton.addEventListener('click', function() {
+                initializeGame();
+                startGame();
+            });
+            
+            startButton.addEventListener('click', function() {
+                startGame();
+            });
+            
+            // Initialize game
+            initializeGame();
+        });
+    </script>
+</body>
+</html>
